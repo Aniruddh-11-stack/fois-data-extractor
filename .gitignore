@@ -1,0 +1,5 @@
+__pycache__/
+*.xlsx
+~$*
+.env
+debug_error_page.html
