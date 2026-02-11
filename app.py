@@ -1,8 +1,33 @@
-
+import streamlit as st
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
+import pandas as pd
+import time
+import os
+import shutil
+from io import BytesIO, StringIO
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
-# ... (helper imports)
+# Page Config
+st.set_page_config(page_title="FOIS Data Extractor", page_icon="🚆", layout="wide")
+
+st.title("🚆 FOIS Data Extractor")
+st.markdown("""
+This tool automates data extraction from the [FOIS Website](https://www.fois.indianrail.gov.in/FOISWebPortal/pages/FWP_ODROtsgDtls.jsp).
+**Instructions:**
+1. Configure your query (Type, Zone, Period).
+2. Click **Initialize & Load CAPTCHA**.
+3. Enter the CAPTCHA code shown in the screenshot.
+4. Click **Submit & Extract**.
+""")
+
+# --- Helper Functions ---
 
 def get_driver():
     """Initializes and returns a headless Chrome driver with Cloud support."""
