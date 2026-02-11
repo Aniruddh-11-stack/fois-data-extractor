@@ -35,11 +35,39 @@ def get_driver():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    options.add_argument("--disable-extensions")
+    
+    # CRITICAL: Use a local user data dir to avoid permission issues in Cloud
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    user_data_dir = os.path.join(curr_dir, "chrome_profile")
+    if not os.path.exists(user_data_dir):
+        os.makedirs(user_data_dir, exist_ok=True)
+    options.add_argument(f"--user-data-dir={user_data_dir}")
+    
     options.add_argument("--page-load-strategy=none") 
     
     try:
+        # --- Environment Debugging ---
+        st.write("--- Environment Debug Info ---")
+        try:
+            c_bin = shutil.which("chromium") or shutil.which("google-chrome") or "Not Found"
+            d_bin = shutil.which("chromedriver") or "Not Found"
+            st.write(f"Binary Path (which): {c_bin}")
+            st.write(f"Driver Path (which): {d_bin}")
+            
+            if os.path.exists("/usr/bin/chromium"):
+                st.write("Confirmed: /usr/bin/chromium exists")
+            if os.path.exists("/usr/bin/chromedriver"):
+                st.write("Confirmed: /usr/bin/chromedriver exists")
+                
+        except Exception as e:
+            st.write(f"Debug Error: {e}")
+        st.write("----------------------------")
+        # -----------------------------
+
         # Streamlit Cloud (Linux) Strategy
-        # We rely on 'packages.txt' installing chromium and chromium-driver
         if os.path.exists("/usr/bin/chromium") and os.path.exists("/usr/bin/chromedriver"):
             options.binary_location = "/usr/bin/chromium"
             service = Service("/usr/bin/chromedriver")
@@ -52,11 +80,10 @@ def get_driver():
         driver.set_page_load_timeout(600) 
         driver.set_script_timeout(600)
         
-        # CRITICAL FIX: Increase internal socket timeout
         try:
             driver.command_executor.set_timeout(600)
         except:
-            pass # Newer selenium versions might handle this differently
+            pass
             
     except Exception as e:
         raise e
