@@ -31,27 +31,28 @@ This tool automates data extraction from the [FOIS Website](https://www.fois.ind
 def get_driver():
     """Initializes and returns a headless Chrome driver with Cloud support."""
     options = Options()
-    options.add_argument("--headless") # Standard headless
+    options.add_argument("--headless") 
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--remote-debugging-port=9222") # Critical for cloud
-    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--disable-setuid-sandbox")
     options.add_argument("--window-size=1920,1080")
     
-    options.add_argument("--disable-features=VizDisplayCompositor")
-    options.add_argument("--disable-features=NetworkService")
     options.add_argument("--page-load-strategy=none") 
     
     # Cloud Environment Specifics
     try:
+        # Debugging: Print paths
+        c_path = shutil.which("chromium") or "/usr/bin/chromium"
+        d_path = shutil.which("chromedriver") or "/usr/bin/chromedriver"
+        print(f"DEBUG: Chromium path: {c_path}")
+        print(f"DEBUG: Driver path: {d_path}")
+
         # Check standard Streamlit Cloud paths
-        chromium_path = "/usr/bin/chromium"
-        driver_path = "/usr/bin/chromedriver"
-        
-        if os.path.exists(chromium_path) and os.path.exists(driver_path):
-            options.binary_location = chromium_path
-            service = Service(driver_path)
+        if os.path.exists("/usr/bin/chromium") and os.path.exists("/usr/bin/chromedriver"):
+            options.binary_location = "/usr/bin/chromium"
+            service = Service("/usr/bin/chromedriver")
             driver = webdriver.Chrome(service=service, options=options)
         else:
             # Fallback (Native Manager)
