@@ -1,32 +1,8 @@
 
-import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
-import pandas as pd
-import time
-import os
-import shutil
-from io import BytesIO, StringIO
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 
-# Page Config
-st.set_page_config(page_title="FOIS Data Extractor", page_icon="🚆", layout="wide")
-
-st.title("🚆 FOIS Data Extractor")
-st.markdown("""
-This tool automates data extraction from the [FOIS Website](https://www.fois.indianrail.gov.in/FOISWebPortal/pages/FWP_ODROtsgDtls.jsp).
-**Instructions:**
-1. Configure your query (Type, Zone, Period).
-2. Click **Initialize & Load CAPTCHA**.
-3. Enter the CAPTCHA code shown in the screenshot.
-4. Click **Submit & Extract**.
-""")
-
-# --- Helper Functions ---
+# ... (helper imports)
 
 def get_driver():
     """Initializes and returns a headless Chrome driver with Cloud support."""
@@ -38,25 +14,21 @@ def get_driver():
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--disable-setuid-sandbox")
     options.add_argument("--window-size=1920,1080")
-    
     options.add_argument("--page-load-strategy=none") 
     
-    # Cloud Environment Specifics
     try:
-        # Debugging: Print paths
-        c_path = shutil.which("chromium") or "/usr/bin/chromium"
-        d_path = shutil.which("chromedriver") or "/usr/bin/chromedriver"
-        print(f"DEBUG: Chromium path: {c_path}")
-        print(f"DEBUG: Driver path: {d_path}")
-
-        # Check standard Streamlit Cloud paths
-        if os.path.exists("/usr/bin/chromium") and os.path.exists("/usr/bin/chromedriver"):
+        # Streamlit Cloud / Linux Strategy
+        if os.path.exists("/usr/bin/chromium"):
             options.binary_location = "/usr/bin/chromium"
-            service = Service("/usr/bin/chromedriver")
+            # Install matching driver for the installed chromium
+            service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
             driver = webdriver.Chrome(service=service, options=options)
         else:
-            # Fallback (Native Manager)
-            driver = webdriver.Chrome(options=options)
+            # Local Windows/Mac Strategy
+            # Leave binary location empty (auto-detect)
+            # Use standard Chrome driver
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
             
         driver.set_page_load_timeout(600) 
         driver.set_script_timeout(600)
