@@ -11,8 +11,6 @@ import time
 import os
 import shutil
 from io import BytesIO, StringIO
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
 
 # Page Config
 st.set_page_config(page_title="FOIS Data Extractor", page_icon="🚆", layout="wide")
@@ -36,24 +34,20 @@ def get_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--disable-software-rasterizer")
-    options.add_argument("--disable-setuid-sandbox")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--page-load-strategy=none") 
     
     try:
-        # Streamlit Cloud / Linux Strategy
-        if os.path.exists("/usr/bin/chromium"):
+        # Streamlit Cloud (Linux) Strategy
+        # We rely on 'packages.txt' installing chromium and chromium-driver
+        if os.path.exists("/usr/bin/chromium") and os.path.exists("/usr/bin/chromedriver"):
             options.binary_location = "/usr/bin/chromium"
-            # Install matching driver for the installed chromium
-            service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
+            service = Service("/usr/bin/chromedriver")
             driver = webdriver.Chrome(service=service, options=options)
         else:
-            # Local Windows/Mac Strategy
-            # Leave binary location empty (auto-detect)
-            # Use standard Chrome driver
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=options)
+            # Local Strategy (Windows/Mac)
+            # This requires the user to have Chrome installed locally
+            driver = webdriver.Chrome(options=options)
             
         driver.set_page_load_timeout(600) 
         driver.set_script_timeout(600)
