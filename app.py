@@ -2,6 +2,7 @@
 import streamlit as st
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,6 +10,7 @@ from selenium.webdriver.support.ui import Select
 import pandas as pd
 import time
 import os
+import shutil
 from io import BytesIO, StringIO
 
 # Page Config
@@ -27,30 +29,41 @@ This tool automates data extraction from the [FOIS Website](https://www.fois.ind
 # --- Helper Functions ---
 
 def get_driver():
-    """Initializes and returns a headless Chrome driver."""
+    """Initializes and returns a headless Chrome driver with Cloud support."""
     options = Options()
-    options.add_argument("--headless")
+    options.add_argument("--headless=new") # Safer headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("--page-load-strategy=none") # Do not wait for anything (fastest)
+    options.add_argument("--disable-features=VizDisplayCompositor")
+    options.add_argument("--disable-features=NetworkService")
+    options.add_argument("--page-load-strategy=none") 
     
-    # Use native Selenium Manager (built-in to Selenium 4.10+)
-    # This automatically handles driver download and version matching
+    # Cloud Environment Specifics
     try:
-        driver = webdriver.Chrome(options=options)
-        driver.set_page_load_timeout(600) # 10 minutes
+        # Check standard Streamlit Cloud paths
+        chromium_path = "/usr/bin/chromium"
+        driver_path = "/usr/bin/chromedriver"
+        
+        if os.path.exists(chromium_path) and os.path.exists(driver_path):
+            options.binary_location = chromium_path
+            service = Service(driver_path)
+            driver = webdriver.Chrome(service=service, options=options)
+        else:
+            # Local or other env fallback (Native Manager)
+            driver = webdriver.Chrome(options=options)
+            
+        driver.set_page_load_timeout(600) 
         driver.set_script_timeout(600)
         
-        # CRITICAL FIX: Increase the internal socket timeout for commands
-        # The default is 60-120s, which causes the "Read timed out" error even if page_load_timeout is high
-        driver.command_executor.set_timeout(600) 
-        
+        # CRITICAL FIX: Increase internal socket timeout
+        try:
+            driver.command_executor.set_timeout(600)
+        except:
+            pass # Newer selenium versions might handle this differently
+            
     except Exception as e:
-        # Fallback for some systems where basic init might fail without service
-        # But generally native is best. 
-        # If this fails, we let the specific error bubble up.
         raise e
         
     return driver
