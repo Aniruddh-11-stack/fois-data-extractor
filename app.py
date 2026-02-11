@@ -31,11 +31,14 @@ This tool automates data extraction from the [FOIS Website](https://www.fois.ind
 def get_driver():
     """Initializes and returns a headless Chrome driver with Cloud support."""
     options = Options()
-    options.add_argument("--headless=new") # Safer headless mode
+    options.add_argument("--headless") # Standard headless
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
+    options.add_argument("--remote-debugging-port=9222") # Critical for cloud
+    options.add_argument("--disable-extensions")
     options.add_argument("--window-size=1920,1080")
+    
     options.add_argument("--disable-features=VizDisplayCompositor")
     options.add_argument("--disable-features=NetworkService")
     options.add_argument("--page-load-strategy=none") 
@@ -51,7 +54,7 @@ def get_driver():
             service = Service(driver_path)
             driver = webdriver.Chrome(service=service, options=options)
         else:
-            # Local or other env fallback (Native Manager)
+            # Fallback (Native Manager)
             driver = webdriver.Chrome(options=options)
             
         driver.set_page_load_timeout(600) 
