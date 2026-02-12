@@ -10,7 +10,16 @@ import pandas as pd
 import time
 import os
 import shutil
+import subprocess
 from io import BytesIO, StringIO
+
+# Try importing webdriver_manager for local compatibility
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+    from webdriver_manager.core.os_manager import ChromeType
+    HAS_WDM = True
+except ImportError:
+    HAS_WDM = False
 
 # Page Config
 st.set_page_config(page_title="FOIS Data Extractor", page_icon="🚆", layout="wide")
@@ -30,7 +39,7 @@ This tool automates data extraction from the [FOIS Website](https://www.fois.ind
 def get_driver():
     """Initializes and returns a headless Chrome driver with Cloud support."""
     options = Options()
-    options.add_argument("--headless") 
+    # options.add_argument("--headless") # Commented out for local debugging
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
@@ -43,13 +52,34 @@ def get_driver():
         # Debug info
         try:
              res = subprocess.run(["chromium", "--version"], capture_output=True, text=True)
-             st.write(f"Chromium Version: {res.stdout.strip()}")
+             if res.returncode == 0:
+                 st.write(f"Chromium Version: {res.stdout.strip()}")
         except:
              pass
 
-        # Simplified Init: Rely on PATH
-        # Streamlit Cloud puts /usr/bin in PATH, so 'chromedriver' should be found automatically.
-        driver = webdriver.Chrome(options=options)
+        # 1. Streamlit Cloud (Linux) Strategy
+        if os.path.exists("/usr/bin/chromium") and os.path.exists("/usr/bin/chromedriver"):
+            options.binary_location = "/usr/bin/chromium"
+            options.add_argument("--headless=new") # Force headless in Cloud
+            service = Service("/usr/bin/chromedriver")
+            driver = webdriver.Chrome(service=service, options=options)
+        
+        # 2. Local Strategy (Windows/Mac) using WebDriver Manager
+        elif HAS_WDM:
+            st.toast("Using Webdriver Manager for Local Chrome...")
+            try:
+                driver_path = ChromeDriverManager().install()
+                # st.write(f"Debug: Driver found at {driver_path}")
+                service = Service(driver_path)
+                driver = webdriver.Chrome(service=service, options=options)
+            except Exception as e:
+                st.error(f"WDM Error: {e}")
+                # Fallback to default
+                driver = webdriver.Chrome(options=options)
+            
+        # 3. Fallback (PATH)
+        else:
+            driver = webdriver.Chrome(options=options)
             
         driver.set_page_load_timeout(600) 
         driver.set_script_timeout(600)
@@ -60,6 +90,8 @@ def get_driver():
             pass
             
     except Exception as e:
+        st.error(f"Error initializing driver: {e}")
+        st.info("Troubleshooting: \n1. Update Chrome to the latest version.\n2. Kill any running 'chrome.exe' processes in Task Manager.\n3. Verify internet connection for downloading drivers.")
         raise e
         
     return driver
