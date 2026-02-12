@@ -4,3 +4,4 @@ pandas
 openpyxl
 html5lib
 lxml
+webdriver-manager
